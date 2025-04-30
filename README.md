@@ -1,7 +1,7 @@
 # Shift
-![Go](https://github.com/luno/shift/actions/workflows/test.yml/badge.svg?branch=main) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/luno/shift?style=flat-square)](https://goreportcard.com/report/github.com/luno/shift)
-[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/luno/shift)
+![Go](https://github.com/nileag/shift/actions/workflows/test.yml/badge.svg?branch=main) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/nileag/shift?style=flat-square)](https://goreportcard.com/report/github.com/nileag/shift)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/nileag/shift)
 
 Shift provides the SQL persistence layer for a simple "finite state machine" domain model. It provides validation, explicit fields and reflex events per state change. It is therefore used to explicitly define the life cycle of the domain model, i.e., the states it can transition through and the data modifications required for each transition.
 
@@ -103,7 +103,7 @@ err = fsm.Update(ctx, dbc, PENDING, COMPLETED, completed{id, "success!"})
 
 > Note that the terms "state" and "status" are effective synonyms in this case. We found "state" to be an overtaxed term, so we use "status" in the code instead.
 
-See [GoDoc](https://godoc.org/github.com/luno/shift) for details and this [example](shift_test.go).
+See [GoDoc](https://godoc.org/github.com/nileag/shift) for details and this [example](shift_test.go).
                       
 # Why?
 

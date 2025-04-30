@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/luno/reflex/rsql"
-	"github.com/luno/shift"
+	"github.com/nileag/shift"
 )
 
 var events = rsql.NewEventsTableInt("events")

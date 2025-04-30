@@ -8,10 +8,10 @@ import (
 	"github.com/luno/jettison/jtest"
 	"github.com/stretchr/testify/require"
 
-	"github.com/luno/shift"
+	"github.com/nileag/shift"
 )
 
-//go:generate go run github.com/luno/shift/shiftgen -inserters=insert2 -updaters=move -table=users -out=gen_4_test.go
+//go:generate go run github.com/nileag/shift/shiftgen -inserters=insert2 -updaters=move -table=users -out=gen_4_test.go
 
 type insert2 struct {
 	Name        string

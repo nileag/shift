@@ -14,10 +14,10 @@ import (
 	"github.com/luno/reflex/rsql"
 	"github.com/stretchr/testify/require"
 
-	"github.com/luno/shift"
+	"github.com/nileag/shift"
 )
 
-//go:generate go run github.com/luno/shift/shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_1_test.go
+//go:generate go run github.com/nileag/shift/shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_1_test.go
 
 type insert struct {
 	Name        string
@@ -118,7 +118,7 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, table strin
 	}
 }
 
-//go:generate go run github.com/luno/shift/shiftgen -inserter=insertStr -updaters=updateStr,completeStr -table=usersStr -out=gen_string_test.go
+//go:generate go run github.com/nileag/shift/shiftgen -inserter=insertStr -updaters=updateStr,completeStr -table=usersStr -out=gen_string_test.go
 
 type insertStr struct {
 	ID          string
@@ -141,10 +141,10 @@ const usersStrTable = "usersStr"
 var (
 	eventsStr = rsql.NewEventsTable("eventsStr")
 	fsmStr    = shift.NewGenFSM[string](eventsStr).
-		Insert(StatusInit, insertStr{}, StatusUpdate).
-		Update(StatusUpdate, updateStr{}, StatusComplete).
-		Update(StatusComplete, completeStr{}).
-		Build()
+			Insert(StatusInit, insertStr{}, StatusUpdate).
+			Update(StatusUpdate, updateStr{}, StatusComplete).
+			Update(StatusComplete, completeStr{}).
+			Build()
 )
 
 func TestBasic_StringFSM(t *testing.T) {
@@ -222,7 +222,7 @@ func TestWithValidation(t *testing.T) {
 	jtest.Require(t, errUpdateInvalid, err)
 }
 
-//go:generate go run github.com/luno/shift/shiftgen -inserter=i_t -updaters=u_t -table=tests -out=gen_3_test.go
+//go:generate go run github.com/nileag/shift/shiftgen -inserter=i_t -updaters=u_t -table=tests -out=gen_3_test.go
 
 type i_t struct {
 	I1        int64

@@ -109,7 +109,7 @@ func getShiftAlias(node *ast.Package) string {
 		if !ok {
 			return true
 		}
-		if importSpec.Path.Value == `"github.com/luno/shift"` {
+		if importSpec.Path.Value == `"github.com/nileag/shift"` {
 			if importSpec.Name != nil {
 				shiftAlias = importSpec.Name.Name
 			}
