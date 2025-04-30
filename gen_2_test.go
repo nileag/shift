@@ -10,7 +10,7 @@ import (
 
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/j"
-	"github.com/luno/shift"
+	"github.com/nileag/shift"
 )
 
 // Insert inserts a new tests table entity. All the fields of the

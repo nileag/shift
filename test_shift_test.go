@@ -9,11 +9,11 @@ import (
 
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
-	"github.com/luno/shift"
+	"github.com/nileag/shift"
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate go run github.com/luno/shift/shiftgen -inserter=i -updaters=u -table=tests -out=gen_2_test.go
+//go:generate go run github.com/nileag/shift/shiftgen -inserter=i -updaters=u -table=tests -out=gen_2_test.go
 
 type i struct {
 	I1 int64
