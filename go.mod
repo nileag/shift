@@ -1,9 +1,11 @@
 module github.com/nileag/shift
 
-go 1.24
+go 1.24.3
+
+toolchain go1.24.6
 
 require (
-	github.com/luno/jettison v0.0.0-20250424095956-76a91fb3568f
+	github.com/luno/jettison v0.0.0-20250702144616-bda0ef904084
 	github.com/luno/reflex v0.0.0-20250313101922-d2735e11add1
 	github.com/sebdah/goldie/v2 v2.5.5
 	github.com/stretchr/testify v1.10.0
@@ -35,7 +37,7 @@ require (
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250428153025-10db94c68c34 // indirect
-	google.golang.org/grpc v1.72.0 // indirect
+	google.golang.org/grpc v1.73.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
