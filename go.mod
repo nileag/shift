@@ -6,7 +6,7 @@ toolchain go1.24.6
 
 require (
 	github.com/luno/jettison v0.0.0-20250908151325-9c258b9d6d6e
-	github.com/luno/reflex v0.0.0-20250313101922-d2735e11add1
+	github.com/luno/reflex v0.0.0-20250922173903-53206d771301
 	github.com/sebdah/goldie/v2 v2.7.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/tools v0.37.0
@@ -18,7 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.2 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
