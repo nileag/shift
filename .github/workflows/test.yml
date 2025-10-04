@@ -24,13 +24,12 @@ jobs:
 
     steps:
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v5
-
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version-file: go.mod
+        go-version: go.mod
+
+    - uses: actions/checkout@v5
 
     - name: Get dependencies
       run: |
