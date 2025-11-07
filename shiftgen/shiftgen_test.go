@@ -48,6 +48,13 @@ func TestGen(t *testing.T) {
 			stringID:  true,
 			outFile:   "shift_gen.go",
 		},
+		{
+			dir:       "case_omit",
+			table:     "items",
+			inserters: []string{"insert"},
+			updaters:  []string{"update", "complete"},
+			outFile:   "shift_gen.go",
+		},
 	}
 
 	for _, c := range cc {

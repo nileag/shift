@@ -1,6 +1,6 @@
 // Command shiftgen generates method receivers functions for structs to implement
 // shift Inserter and Updater interfaces. The implementations insert and update
-// rows in mysql.
+// rows in PostgreSQL.
 //
 // Note shiftgen does not support generating GetMetadata functions for
 // MetadataInserter or MetadataUpdater since it is orthogonal to inserting
@@ -13,6 +13,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -80,6 +81,31 @@ type Struct struct {
 	HasID           bool
 	// IDType is the type of the ID field
 	IDType string
+}
+
+// ParamCount returns the number of parameters before fields start
+func (s Struct) ParamCount() int {
+	count := 1 // status
+	if s.HasID {
+		count++ // id
+	}
+	if !s.CustomCreatedAt {
+		count++
+	}
+	if !s.CustomUpdatedAt {
+		count++
+	}
+	return count
+}
+
+// UpdateParamCount returns the number of parameters before WHERE clause
+func (s Struct) UpdateParamCount() int {
+	count := 1 // status
+	if !s.CustomUpdatedAt {
+		count++
+	}
+	count += len(s.Fields)
+	return count
 }
 
 func (s Struct) IDZeroValue() string {
@@ -342,6 +368,33 @@ func (opts tagOptions) contains(optionName string) bool {
 func execTpl(out io.Writer, tpl string, data Data) error {
 	t := template.New("").Funcs(map[string]interface{}{
 		"col": quoteCol,
+		"param": func(n int) string {
+			return fmt.Sprintf("$%d", n)
+		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"insertParamNum": func(hasID bool, customCreatedAt, customUpdatedAt bool, fieldIdx int) int {
+			paramNum := 1
+			if hasID {
+				paramNum++ // id
+			}
+			paramNum++ // status
+			if !customCreatedAt {
+				paramNum++
+			}
+			if !customUpdatedAt {
+				paramNum++
+			}
+			return paramNum + fieldIdx
+		},
+		"updateParamNum": func(customUpdatedAt bool, fieldIdx int) int {
+			paramNum := 2 // status is $1
+			if !customUpdatedAt {
+				paramNum++
+			}
+			return paramNum + fieldIdx
+		},
 	})
 
 	tp, err := t.Parse(tpl)

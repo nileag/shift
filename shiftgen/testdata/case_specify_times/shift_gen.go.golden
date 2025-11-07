@@ -31,35 +31,46 @@ func (一 iFoo) Insert(
 		return 0, errors.New("updated_at is required")
 	}
 
-	q.WriteString("insert into foo set `status`=? ")
+	// PostgreSQL uses INSERT ... VALUES syntax
+	q.WriteString("INSERT INTO foo (")
+
+	q.WriteString(`status`)
+
+	q.WriteString(", ")
+	q.WriteString(`i1`)
+	q.WriteString(", ")
+	q.WriteString(`i2`)
+	q.WriteString(", ")
+	q.WriteString(`i3`)
+	q.WriteString(", ")
+	q.WriteString(`created_at`)
+	q.WriteString(", ")
+	q.WriteString(`updated_at`)
+	q.WriteString(") VALUES (")
+
+	q.WriteString("$1")
 	args = append(args, st.ShiftStatus())
-
-	q.WriteString(", `i1`=?")
+	q.WriteString(", $2")
 	args = append(args, 一.I1)
-
-	q.WriteString(", `i2`=?")
+	q.WriteString(", $3")
 	args = append(args, 一.I2)
-
-	q.WriteString(", `i3`=?")
+	q.WriteString(", $4")
 	args = append(args, 一.I3)
-
-	q.WriteString(", `created_at`=?")
+	q.WriteString(", $5")
 	args = append(args, 一.CreatedAt)
-
-	q.WriteString(", `updated_at`=?")
+	q.WriteString(", $6")
 	args = append(args, 一.UpdatedAt)
 
-	res, err := tx.ExecContext(ctx, q.String(), args...)
+	q.WriteString(")")
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
 	return id, nil
+
 }
 
 // Update updates the status of a foo table entity. All the fields of the
@@ -77,28 +88,24 @@ func (一 uFoo) Update(
 		return 0, errors.New("updated_at is required")
 	}
 
-	q.WriteString("update foo set `status`=? ")
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE foo SET `status`=$1")
 	args = append(args, to.ShiftStatus())
-
-	q.WriteString(", `u1`=?")
+	q.WriteString(", `u1`=$2")
 	args = append(args, 一.U1)
-
-	q.WriteString(", `u2`=?")
+	q.WriteString(", `u2`=$3")
 	args = append(args, 一.U2)
-
-	q.WriteString(", `u3`=?")
+	q.WriteString(", `u3`=$4")
 	args = append(args, 一.U3)
-
-	q.WriteString(", `u4`=?")
+	q.WriteString(", `u4`=$5")
 	args = append(args, 一.U4)
-
-	q.WriteString(", `u5`=?")
+	q.WriteString(", `u5`=$6")
 	args = append(args, 一.U5)
-
-	q.WriteString(", `updated_at`=?")
+	q.WriteString(", `updated_at`=$7")
 	args = append(args, 一.UpdatedAt)
 
-	q.WriteString(" where `id`=? and `status`=?")
+	q.WriteString(" WHERE `id`=$8 AND `status`=$9")
+
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

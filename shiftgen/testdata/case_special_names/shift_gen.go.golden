@@ -24,23 +24,37 @@ func (一 类型) Insert(
 		args []interface{}
 	)
 
-	q.WriteString("insert into bar_baz set `status`=?, `created_at`=?, `updated_at`=? ")
-	args = append(args, st.ShiftStatus(), time.Now(), time.Now())
+	// PostgreSQL uses INSERT ... VALUES syntax
+	q.WriteString("INSERT INTO bar_baz (")
 
-	q.WriteString(", `name`=?")
+	q.WriteString(`status`)
+
+	q.WriteString(", created_at")
+	q.WriteString(", updated_at")
+
+	q.WriteString(", ")
+	q.WriteString(`name`)
+	q.WriteString(") VALUES (")
+
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	q.WriteString(", $2")
+	args = append(args, time.Now())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
 	args = append(args, 一.Name)
 
-	res, err := tx.ExecContext(ctx, q.String(), args...)
+	q.WriteString(")")
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
 	return id, nil
+
 }
 
 // Update updates the status of a bar_baz table entity. All the fields of the
@@ -58,16 +72,16 @@ func (一 변수) Update(
 		return 0, errors.New("updated_at is required")
 	}
 
-	q.WriteString("update bar_baz set `status`=? ")
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE bar_baz SET `status`=$1")
 	args = append(args, to.ShiftStatus())
-
-	q.WriteString(", `name`=?")
+	q.WriteString(", `name`=$2")
 	args = append(args, 一.Name)
-
-	q.WriteString(", `updated_at`=?")
+	q.WriteString(", `updated_at`=$3")
 	args = append(args, 一.UpdatedAt)
 
-	q.WriteString(" where `id`=? and `status`=?")
+	q.WriteString(" WHERE `id`=$4 AND `status`=$5")
+
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
@@ -100,16 +114,16 @@ func (一 エラー) Update(
 		return 0, errors.New("updated_at is required")
 	}
 
-	q.WriteString("update bar_baz set `status`=? ")
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE bar_baz SET `status`=$1")
 	args = append(args, to.ShiftStatus())
-
-	q.WriteString(", `surname`=?")
+	q.WriteString(", `surname`=$2")
 	args = append(args, 一.Surname)
-
-	q.WriteString(", `updated_at`=?")
+	q.WriteString(", `updated_at`=$3")
 	args = append(args, 一.UpdatedAt)
 
-	q.WriteString(" where `id`=? and `status`=?")
+	q.WriteString(" WHERE `id`=$4 AND `status`=$5")
+
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

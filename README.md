@@ -85,7 +85,7 @@ Shift requires the state structs to implement `Inserter` or `Updater` interfaces
 A command `shiftgen` is provided that generates SQL boilerplate to implement these interfaces.
 
 ```go
-//go:generate shiftgen -inserter=create -updaters=pending,failed,completed -table=mysql_table_name
+//go:generate shiftgen -inserter=create -updaters=pending,failed,completed -table=table_name
 ```
 
 The `fsm` instance is then used by the business logic to drive the state machine.

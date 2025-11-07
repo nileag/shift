@@ -24,26 +24,41 @@ func (一 insert) Insert(
 		args []interface{}
 	)
 
-	q.WriteString("insert into users set `status`=?, `created_at`=?, `updated_at`=? ")
-	args = append(args, st.ShiftStatus(), time.Now(), time.Now())
+	// PostgreSQL uses INSERT ... VALUES syntax
+	q.WriteString("INSERT INTO users (")
 
-	q.WriteString(", `name`=?")
+	q.WriteString(`status`)
+
+	q.WriteString(", created_at")
+	q.WriteString(", updated_at")
+
+	q.WriteString(", ")
+	q.WriteString(`name`)
+	q.WriteString(", ")
+	q.WriteString(`dob`)
+	q.WriteString(") VALUES (")
+
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	q.WriteString(", $2")
+	args = append(args, time.Now())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
 	args = append(args, 一.Name)
-
-	q.WriteString(", `dob`=?")
+	q.WriteString(", $5")
 	args = append(args, 一.DateOfBirth)
 
-	res, err := tx.ExecContext(ctx, q.String(), args...)
+	q.WriteString(")")
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
 	return id, nil
+
 }
 
 // Update updates the status of a users table entity. All the fields of the
@@ -57,16 +72,18 @@ func (一 update) Update(
 		args []interface{}
 	)
 
-	q.WriteString("update users set `status`=?, `updated_at`=? ")
-	args = append(args, to.ShiftStatus(), time.Now())
-
-	q.WriteString(", `name`=?")
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE users SET `status`=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(", `name`=$3")
 	args = append(args, 一.Name)
-
-	q.WriteString(", `amount`=?")
+	q.WriteString(", `amount`=$4")
 	args = append(args, 一.Amount)
 
-	q.WriteString(" where `id`=? and `status`=?")
+	q.WriteString(" WHERE `id`=$5 AND `status`=$6")
+
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
@@ -95,10 +112,14 @@ func (一 complete) Update(
 		args []interface{}
 	)
 
-	q.WriteString("update users set `status`=?, `updated_at`=? ")
-	args = append(args, to.ShiftStatus(), time.Now())
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE users SET `status`=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
 
-	q.WriteString(" where `id`=? and `status`=?")
+	q.WriteString(" WHERE `id`=$3 AND `status`=$4")
+
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

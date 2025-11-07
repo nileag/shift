@@ -7,7 +7,8 @@ var tpl = `package {{.Package}}
 import (
 	"context"
 	"database/sql"
-	"strings"
+	{{$needsStrconv := false}}{{range .Inserters}}{{if and (not .HasID) (eq .IDType "string")}}{{$needsStrconv = true}}{{end}}{{end}}{{range .Updaters}}{{if eq .IDType "string"}}{{$needsStrconv = true}}{{end}}{{end}}{{if $needsStrconv}}"strconv"
+	{{end}}"strings"
 	"time"
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/j"
@@ -39,23 +40,82 @@ func (一 {{.Type}}) Insert(
 
 	{{end -}}
 
-	q.WriteString("insert into {{.Table}} set {{if .HasID}}` + "`id`=?" + `, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
-	args = append(args, {{if .HasID}}一.ID, {{end}}st.ShiftStatus(){{if not .CustomCreatedAt}}, time.Now(){{end}}{{if not .CustomCreatedAt}}, time.Now(){{end}})
-{{range .Fields}}
-	q.WriteString(", {{col .Col}}=?")
-	args = append(args, 一.{{.Name}})
-{{end}}
-	{{if .HasID}}_{{else}}res{{end}}, err := tx.ExecContext(ctx, q.String(), args...)
+	// PostgreSQL uses INSERT ... VALUES syntax
+	q.WriteString("INSERT INTO {{.Table}} (")
+	{{if .HasID}}q.WriteString("id, "){{else}}
+	
+	{{end}}
+	q.WriteString({{col .StatusField}})
+	{{if and .CustomCreatedAt .CustomUpdatedAt (gt (len .Fields) 0)}}
+	
+	{{end}}
+	{{if not .CustomCreatedAt}}q.WriteString(", created_at"){{end}}
+	{{if not .CustomUpdatedAt}}q.WriteString(", updated_at"){{end}}
+	{{if or (not .CustomCreatedAt) (not .CustomUpdatedAt)}}{{if gt (len .Fields) 0}}
+	
+	{{end}}{{end}}
+	{{range .Fields}}
+	q.WriteString(", ")
+	q.WriteString({{col .Col}}){{end}}
+	q.WriteString(") VALUES (")
+	{{if .HasID}}
+	q.WriteString("$1, $2")
+	args = append(args, 一.ID, st.ShiftStatus())
+	{{if not .CustomCreatedAt}}q.WriteString(", $3")
+	args = append(args, time.Now())
+	{{if not .CustomUpdatedAt}}q.WriteString(", $4")
+	args = append(args, time.Now())
+	{{range $idx, $field := .Fields}}q.WriteString(", ${{add 5 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{else}}{{range $idx, $field := .Fields}}q.WriteString(", ${{add 4 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{end}}{{else}}q.WriteString(", $3")
+	args = append(args, time.Now())
+	{{if not .CustomUpdatedAt}}q.WriteString(", $4")
+	args = append(args, time.Now())
+	{{range $idx, $field := .Fields}}q.WriteString(", ${{add 5 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{else}}{{range $idx, $field := .Fields}}q.WriteString(", ${{add 4 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{end}}{{end}}
+	q.WriteString(")")
+	{{if not .HasID}}q.WriteString(" RETURNING id")
+	{{end}}
+	{{else}}
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	{{if not .CustomCreatedAt}}q.WriteString(", $2")
+	args = append(args, time.Now())
+	{{if not .CustomUpdatedAt}}q.WriteString(", $3")
+	args = append(args, time.Now())
+	{{range $idx, $field := .Fields}}q.WriteString(", ${{add 4 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{else}}{{range $idx, $field := .Fields}}q.WriteString(", ${{add 3 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{end}}{{else}}{{if not .CustomUpdatedAt}}q.WriteString(", $2")
+	args = append(args, time.Now())
+	{{range $idx, $field := .Fields}}q.WriteString(", ${{add 3 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{else}}{{range $idx, $field := .Fields}}q.WriteString(", ${{add 2 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}{{end}}{{end}}
+	q.WriteString(")")
+	q.WriteString(" RETURNING id")
+	{{end}}
+
+	{{if .HasID}}_, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
 		return {{.IDZeroValue}}, err
 	}
-{{if not .HasID}}
-	id, err := res.LastInsertId()
+	return 一.ID, nil
+	{{else}}var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
 	if err != nil {
-		return {{if eq .IDType "int64"}}0{{else}}""{{end}}, err
+		return {{.IDZeroValue}}, err
 	}
-{{end}}
-	return {{if .HasID}}一.ID{{else if eq .IDType "int64"}}id{{else}}strconv.FormatInt(id, 10){{end}}, nil
+	{{if eq .IDType "int64"}}return id, nil
+	{{else}}return strconv.FormatInt(id, 10), nil
+	{{end}}{{end}}
 }
 {{end}}{{ range .Updaters }}
 // Update updates the status of a {{.Table}} table entity. All the fields of the
@@ -76,13 +136,23 @@ func (一 {{.Type}}) Update(
 
 	{{end -}}
 
-	q.WriteString("update {{.Table}} set {{col .StatusField}}=?{{if not .CustomUpdatedAt}}, {{col "updated_at"}}=?{{end}} ")
-	args = append(args, to.ShiftStatus(){{if not .CustomUpdatedAt}}, time.Now(){{end}})
-{{range .Fields}}
-	q.WriteString(", {{col .Col}}=?")
-	args = append(args, 一.{{.Name}})
-{{end}}
-	q.WriteString(" where {{col "id"}}=? and {{col .StatusField}}=?")
+	// PostgreSQL uses $ placeholders
+	q.WriteString("UPDATE {{.Table}} SET {{col .StatusField}}=$1")
+	args = append(args, to.ShiftStatus())
+	{{- if not .CustomUpdatedAt}}
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	{{range $idx, $field := .Fields}}q.WriteString(", {{col $field.Col}}=${{add 3 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}
+	{{$whereBase := add 3 (len .Fields)}}q.WriteString(" WHERE {{col "id"}}=${{$whereBase}} AND {{col .StatusField}}=${{add $whereBase 1}}")
+	{{- else}}
+	{{range $idx, $field := .Fields}}q.WriteString(", {{col $field.Col}}=${{add 2 $idx}}")
+	args = append(args, 一.{{$field.Name}})
+	{{end}}
+	{{$whereBase := add 2 (len .Fields)}}q.WriteString(" WHERE {{col "id"}}=${{$whereBase}} AND {{col .StatusField}}=${{add $whereBase 1}}")
+	{{- end}}
+	
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
