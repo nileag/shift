@@ -24,11 +24,10 @@ jobs:
 
     steps:
 
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
 
@@ -40,4 +39,4 @@ jobs:
       run: go vet ./...
 
     - name: Test
-      run: go test -db_test_base="root@tcp(localhost:${{ job.services.mysql.ports[3306] }})/test?" ./...
+      run: go test -db_test_base="root@tcp(localhost:${{ job.services.mysql.ports['3306'] }})/test?" ./...
