@@ -88,6 +88,32 @@ A command `shiftgen` is provided that generates SQL boilerplate to implement the
 //go:generate shiftgen -inserter=create -updaters=pending,failed,completed -table=table_name
 ```
 
+## Dual Dialect Support
+
+By default, `shiftgen` generates both MySQL and PostgreSQL implementations:
+
+- `InsertMySQL()` / `InsertPostgres()` - for inserters
+- `UpdateMySQL()` / `UpdatePostgres()` - for updaters
+
+Users should implement wrapper `Insert()` and `Update()` methods that delegate to the appropriate dialect based on configuration or feature flags:
+
+```go
+func (c create) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int64, error) {
+    if usePostgres {
+        return c.InsertPostgres(ctx, tx, st)
+    }
+    return c.InsertMySQL(ctx, tx, st)
+}
+```
+
+To generate only specific dialects, use the `-dialects` flag:
+
+```go
+//go:generate shiftgen -dialects=mysql -inserter=create -updaters=pending -table=table_name
+//go:generate shiftgen -dialects=postgres -inserter=create -updaters=pending -table=table_name
+//go:generate shiftgen -dialects=mysql,postgres -inserter=create -updaters=pending -table=table_name
+```
+
 The `fsm` instance is then used by the business logic to drive the state machine.
 
 ```go

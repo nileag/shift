@@ -67,7 +67,8 @@ func TestGen(t *testing.T) {
 			bb, err := generateSrc(
 				filepath.Join("testdata", c.dir),
 				c.table, c.inserters, c.updaters, "status",
-				filepath.Join("testdata", c.dir, c.outFile))
+				filepath.Join("testdata", c.dir, c.outFile),
+				[]string{"mysql", "postgres"})
 
 			jtest.RequireNil(t, err)
 			g := goldie.New(t)
@@ -140,7 +141,8 @@ func TestGenFailure(t *testing.T) {
 			_, err := generateSrc(
 				filepath.Join("testdata", "failure", c.dir),
 				c.table, c.inserters, c.updaters, "status",
-				filepath.Join("testdata", "failure", c.dir, c.outFile))
+				filepath.Join("testdata", "failure", c.dir, c.outFile),
+				[]string{"mysql", "postgres"})
 
 			require.EqualError(t, err, c.outErr.Error())
 		})

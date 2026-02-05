@@ -1,10 +1,13 @@
 // Command shiftgen generates method receivers functions for structs to implement
 // shift Inserter and Updater interfaces. The implementations insert and update
-// rows in PostgreSQL.
+// rows in both MySQL and PostgreSQL, generating dialect-specific methods.
 //
-// Note shiftgen does not support generating GetMetadata functions for
-// MetadataInserter or MetadataUpdater since it is orthogonal to inserting
-// and updating domain entity rows.
+// Generated methods:
+//   - InsertMySQL / InsertPostgres - for inserters
+//   - UpdateMySQL / UpdatePostgres - for updaters
+//
+// Users should implement Insert/Update wrapper methods that delegate to the
+// appropriate dialect based on feature flags or configuration.
 //
 //	Usage:
 //	  //go:generate shiftgen -table=model_table -inserter=InsertReq -updaters=UpdateReq,CompleteReq
@@ -56,8 +59,8 @@ var (
 		"The sql column in the table containing the status")
 	outFile = flag.String("out", "shift_gen.go",
 		"output filename")
-	quoteChar = flag.String("quote_char", "`",
-		"Character to use when quoting column names")
+	dialects = flag.String("dialects", "mysql,postgres",
+		"Comma-separated list of SQL dialects to generate (mysql, postgres)")
 	mermaid = flag.Bool("mermaid", true,
 		"Generate mermaid state machine diagram")
 	mermaidOut = flag.String("mermaid_out", "shift_gen.mmd",
@@ -133,6 +136,7 @@ func main() {
 		log.Fatal(err)
 	}
 	uu := parseUpdaters()
+	dd := parseDialects()
 
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -140,7 +144,7 @@ func main() {
 	}
 	filePath := path.Join(pwd, *outFile)
 
-	src, err := generateSrc(pwd, *table, ii, uu, *statusField, filePath)
+	src, err := generateSrc(pwd, *table, ii, uu, *statusField, filePath, dd)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -190,7 +194,21 @@ func parseUpdaters() []string {
 	return uu
 }
 
-func generateSrc(pkgPath, table string, inserters, updaters []string, statusField, filePath string) ([]byte, error) {
+func parseDialects() []string {
+	var dd []string
+	for _, d := range strings.Split(*dialects, ",") {
+		d = strings.TrimSpace(strings.ToLower(d))
+		if d == "mysql" || d == "postgres" {
+			dd = append(dd, d)
+		}
+	}
+	if len(dd) == 0 {
+		dd = []string{"mysql", "postgres"}
+	}
+	return dd
+}
+
+func generateSrc(pkgPath, table string, inserters, updaters []string, statusField, filePath string, dialects []string) ([]byte, error) {
 	if table == "" {
 		return nil, errors.New("No table specified")
 	}
@@ -329,10 +347,28 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 		return nil, err
 	}
 
+	// Generate header
 	var out bytes.Buffer
-	if err = execTpl(&out, tpl, data); err != nil {
-		return nil, errors.Wrap(err, "Failed executing template")
+	if err = execTpl(&out, tplHeader, data); err != nil {
+		return nil, errors.Wrap(err, "Failed executing header template")
 	}
+
+	// Generate dialect-specific code
+	for _, dialect := range dialects {
+		var tpl string
+		switch dialect {
+		case "mysql":
+			tpl = tplMySQL
+		case "postgres":
+			tpl = tplPostgres
+		default:
+			continue
+		}
+		if err = execTpl(&out, tpl, data); err != nil {
+			return nil, errors.Wrap(err, "Failed executing "+dialect+" template")
+		}
+	}
+
 	return imports.Process(filePath, out.Bytes(), nil)
 }
 
@@ -367,7 +403,9 @@ func (opts tagOptions) contains(optionName string) bool {
 
 func execTpl(out io.Writer, tpl string, data Data) error {
 	t := template.New("").Funcs(map[string]interface{}{
-		"col": quoteCol,
+		"col": func(colName string) string {
+			return colName
+		},
 		"param": func(n int) string {
 			return fmt.Sprintf("$%d", n)
 		},
@@ -403,10 +441,6 @@ func execTpl(out io.Writer, tpl string, data Data) error {
 	}
 
 	return tp.Execute(out, data)
-}
-
-func quoteCol(colName string) string {
-	return *quoteChar + colName + *quoteChar
 }
 
 // ensureMatchingIDType returns an error if any of the inserters or updates have

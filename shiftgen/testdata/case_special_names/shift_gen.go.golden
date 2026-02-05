@@ -13,10 +13,10 @@ import (
 	"github.com/nileag/shift"
 )
 
-// Insert inserts a new bar_baz table entity. All the fields of the
+// InsertMySQL inserts a new bar_baz table entity using MySQL syntax. All the fields of the
 // 类型 receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 类型) Insert(
+func (一 类型) InsertMySQL(
 	ctx context.Context, tx *sql.Tx, st shift.Status,
 ) (int64, error) {
 	var (
@@ -24,43 +24,29 @@ func (一 类型) Insert(
 		args []interface{}
 	)
 
-	// PostgreSQL uses INSERT ... VALUES syntax
-	q.WriteString("INSERT INTO bar_baz (")
+	q.WriteString("insert into bar_baz set `status`=?, `created_at`=?, `updated_at`=? ")
+	args = append(args, st.ShiftStatus(), time.Now(), time.Now())
 
-	q.WriteString(`status`)
-
-	q.WriteString(", created_at")
-	q.WriteString(", updated_at")
-
-	q.WriteString(", ")
-	q.WriteString(`name`)
-	q.WriteString(") VALUES (")
-
-	q.WriteString("$1")
-	args = append(args, st.ShiftStatus())
-	q.WriteString(", $2")
-	args = append(args, time.Now())
-	q.WriteString(", $3")
-	args = append(args, time.Now())
-	q.WriteString(", $4")
+	q.WriteString(", `name`=?")
 	args = append(args, 一.Name)
 
-	q.WriteString(")")
-	q.WriteString(" RETURNING id")
-
-	var id int64
-	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
+	res, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
 		return 0, err
 	}
-	return id, nil
 
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
 
-// Update updates the status of a bar_baz table entity. All the fields of the
+// UpdateMySQL updates the status of a bar_baz table entity using MySQL syntax. All the fields of the
 // 변수 receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 변수) Update(
+func (一 변수) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (int64, error) {
 	var (
@@ -72,16 +58,16 @@ func (一 변수) Update(
 		return 0, errors.New("updated_at is required")
 	}
 
-	// PostgreSQL uses $ placeholders
-	q.WriteString("UPDATE bar_baz SET `status`=$1")
+	q.WriteString("update bar_baz set `status`=? ")
 	args = append(args, to.ShiftStatus())
-	q.WriteString(", `name`=$2")
+
+	q.WriteString(", `name`=?")
 	args = append(args, 一.Name)
-	q.WriteString(", `updated_at`=$3")
+
+	q.WriteString(", `updated_at`=?")
 	args = append(args, 一.UpdatedAt)
 
-	q.WriteString(" WHERE `id`=$4 AND `status`=$5")
-
+	q.WriteString(" where `id`=? and `status`=?")
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
@@ -99,10 +85,10 @@ func (一 변수) Update(
 	return 一.ID, nil
 }
 
-// Update updates the status of a bar_baz table entity. All the fields of the
+// UpdateMySQL updates the status of a bar_baz table entity using MySQL syntax. All the fields of the
 // エラー receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 エラー) Update(
+func (一 エラー) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (int64, error) {
 	var (
@@ -114,16 +100,128 @@ func (一 エラー) Update(
 		return 0, errors.New("updated_at is required")
 	}
 
-	// PostgreSQL uses $ placeholders
-	q.WriteString("UPDATE bar_baz SET `status`=$1")
+	q.WriteString("update bar_baz set `status`=? ")
 	args = append(args, to.ShiftStatus())
-	q.WriteString(", `surname`=$2")
+
+	q.WriteString(", `surname`=?")
 	args = append(args, 一.Surname)
-	q.WriteString(", `updated_at`=$3")
+
+	q.WriteString(", `updated_at`=?")
 	args = append(args, 一.UpdatedAt)
 
-	q.WriteString(" WHERE `id`=$4 AND `status`=$5")
+	q.WriteString(" where `id`=? and `status`=?")
+	args = append(args, 一.ID, from.ShiftStatus())
 
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, errors.Wrap(shift.ErrRowCount, "エラー", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// InsertPostgres inserts a new bar_baz table entity using PostgreSQL syntax. All the fields of the
+// 类型 receiver are set, as well as status, created_at and updated_at.
+// The newly created entity id is returned on success or an error.
+func (一 类型) InsertPostgres(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("INSERT INTO bar_baz (status, created_at, updated_at, name) VALUES (")
+
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	q.WriteString(", $2")
+	args = append(args, time.Now())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
+	args = append(args, 一.Name)
+
+	q.WriteString(")")
+
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// UpdatePostgres updates the status of a bar_baz table entity using PostgreSQL syntax. All the fields of the
+// 변수 receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 변수) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	if 一.UpdatedAt.IsZero() {
+		return 0, errors.New("updated_at is required")
+	}
+
+	q.WriteString("UPDATE bar_baz SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", name=$2")
+	args = append(args, 一.Name)
+	q.WriteString(", updated_at=$3")
+	args = append(args, 一.UpdatedAt)
+	q.WriteString(" WHERE id=$4 AND status=$5")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, errors.Wrap(shift.ErrRowCount, "변수", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// UpdatePostgres updates the status of a bar_baz table entity using PostgreSQL syntax. All the fields of the
+// エラー receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 エラー) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	if 一.UpdatedAt.IsZero() {
+		return 0, errors.New("updated_at is required")
+	}
+
+	q.WriteString("UPDATE bar_baz SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", surname=$2")
+	args = append(args, 一.Surname)
+	q.WriteString(", updated_at=$3")
+	args = append(args, 一.UpdatedAt)
+	q.WriteString(" WHERE id=$4 AND status=$5")
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
