@@ -13,10 +13,10 @@ import (
 	"github.com/nileag/shift"
 )
 
-// Insert inserts a new users table entity. All the fields of the
+// InsertMySQL inserts a new users table entity using MySQL syntax. All the fields of the
 // insert receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 insert) Insert(
+func (一 insert) InsertMySQL(
 	ctx context.Context, tx *sql.Tx, st shift.Status,
 ) (int64, error) {
 	var (
@@ -46,10 +46,10 @@ func (一 insert) Insert(
 	return id, nil
 }
 
-// Update updates the status of a users table entity. All the fields of the
+// UpdateMySQL updates the status of a users table entity using MySQL syntax. All the fields of the
 // update receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 update) Update(
+func (一 update) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (int64, error) {
 	var (
@@ -84,10 +84,10 @@ func (一 update) Update(
 	return 一.ID, nil
 }
 
-// Update updates the status of a users table entity. All the fields of the
+// UpdateMySQL updates the status of a users table entity using MySQL syntax. All the fields of the
 // complete receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 complete) Update(
+func (一 complete) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (int64, error) {
 	var (
@@ -99,6 +99,112 @@ func (一 complete) Update(
 	args = append(args, to.ShiftStatus(), time.Now())
 
 	q.WriteString(" where `id`=? and `status`=?")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, errors.Wrap(shift.ErrRowCount, "complete", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// InsertPostgres inserts a new users table entity using PostgreSQL syntax. All the fields of the
+// insert receiver are set, as well as status, created_at and updated_at.
+// The newly created entity id is returned on success or an error.
+func (一 insert) InsertPostgres(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("INSERT INTO users (status, created_at, updated_at, name, dob) VALUES (")
+
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	q.WriteString(", $2")
+	args = append(args, time.Now())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
+	args = append(args, 一.Name)
+	q.WriteString(", $5")
+	args = append(args, 一.DateOfBirth)
+
+	q.WriteString(")")
+
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// UpdatePostgres updates the status of a users table entity using PostgreSQL syntax. All the fields of the
+// update receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 update) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("UPDATE users SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(", name=$3")
+	args = append(args, 一.Name)
+	q.WriteString(", amount=$4")
+	args = append(args, 一.Amount)
+	q.WriteString(" WHERE id=$5 AND status=$6")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, errors.Wrap(shift.ErrRowCount, "update", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// UpdatePostgres updates the status of a users table entity using PostgreSQL syntax. All the fields of the
+// complete receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 complete) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("UPDATE users SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(" WHERE id=$3 AND status=$4")
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

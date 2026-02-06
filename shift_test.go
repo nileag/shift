@@ -11,7 +11,6 @@ import (
 	"github.com/luno/jettison/j"
 	"github.com/luno/jettison/jtest"
 	"github.com/luno/reflex"
-	"github.com/luno/reflex/rsql"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nileag/shift"
@@ -53,7 +52,7 @@ const (
 const usersTable = "users"
 
 var (
-	events = rsql.NewEventsTableInt("events", rsql.WithoutEventsCache())
+	events = makeEventsInt("events")
 	fsm    = shift.NewFSM(events).
 		Insert(StatusInit, insert{}, StatusUpdate).
 		Update(StatusUpdate, update{}, StatusComplete).
@@ -101,7 +100,7 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, table strin
 	var amount Currency
 	var dob time.Time
 	err := dbc.QueryRow("select name, dob, amount "+
-		"from "+table+" where id=?", id).Scan(&name, &dob, &amount)
+		"from "+table+" where id="+ph(1), id).Scan(&name, &dob, &amount)
 	jtest.RequireNil(t, err)
 	require.Equal(t, exName, name.String)
 	require.Equal(t, exDOB.UTC(), dob.UTC())
@@ -139,7 +138,7 @@ type completeStr struct {
 const usersStrTable = "usersStr"
 
 var (
-	eventsStr = rsql.NewEventsTable("eventsStr")
+	eventsStr = makeEventsTable("eventsStr")
 	fsmStr    = shift.NewGenFSM[string](eventsStr).
 			Insert(StatusInit, insertStr{}, StatusUpdate).
 			Update(StatusUpdate, updateStr{}, StatusComplete).

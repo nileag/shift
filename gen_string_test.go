@@ -13,10 +13,10 @@ import (
 	"github.com/nileag/shift"
 )
 
-// Insert inserts a new usersStr table entity. All the fields of the
+// InsertMySQL inserts a new usersStr table entity using MySQL syntax. All the fields of the
 // insertStr receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 insertStr) Insert(
+func (一 insertStr) InsertMySQL(
 	ctx context.Context, tx *sql.Tx, st shift.Status,
 ) (string, error) {
 	var (
@@ -41,10 +41,10 @@ func (一 insertStr) Insert(
 	return 一.ID, nil
 }
 
-// Update updates the status of a usersStr table entity. All the fields of the
+// UpdateMySQL updates the status of a usersStr table entity using MySQL syntax. All the fields of the
 // updateStr receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 updateStr) Update(
+func (一 updateStr) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (string, error) {
 	var (
@@ -79,10 +79,10 @@ func (一 updateStr) Update(
 	return 一.ID, nil
 }
 
-// Update updates the status of a usersStr table entity. All the fields of the
+// UpdateMySQL updates the status of a usersStr table entity using MySQL syntax. All the fields of the
 // completeStr receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 completeStr) Update(
+func (一 completeStr) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (string, error) {
 	var (
@@ -94,6 +94,109 @@ func (一 completeStr) Update(
 	args = append(args, to.ShiftStatus(), time.Now())
 
 	q.WriteString(" where `id`=? and `status`=?")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return "", err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return "", err
+	}
+	if n != 1 {
+		return "", errors.Wrap(shift.ErrRowCount, "completeStr", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// InsertPostgres inserts a new usersStr table entity using PostgreSQL syntax. All the fields of the
+// insertStr receiver are set, as well as status, created_at and updated_at.
+// The newly created entity id is returned on success or an error.
+func (一 insertStr) InsertPostgres(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) (string, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("INSERT INTO usersStr (id, status, created_at, updated_at, name, dob) VALUES (")
+
+	q.WriteString("$1, $2")
+	args = append(args, 一.ID, st.ShiftStatus())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
+	args = append(args, time.Now())
+	q.WriteString(", $5")
+	args = append(args, 一.Name)
+	q.WriteString(", $6")
+	args = append(args, 一.DateOfBirth)
+
+	q.WriteString(")")
+
+	_, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return "", err
+	}
+	return 一.ID, nil
+}
+
+// UpdatePostgres updates the status of a usersStr table entity using PostgreSQL syntax. All the fields of the
+// updateStr receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 updateStr) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (string, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("UPDATE usersStr SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(", name=$3")
+	args = append(args, 一.Name)
+	q.WriteString(", amount=$4")
+	args = append(args, 一.Amount)
+	q.WriteString(" WHERE id=$5 AND status=$6")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return "", err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return "", err
+	}
+	if n != 1 {
+		return "", errors.Wrap(shift.ErrRowCount, "updateStr", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// UpdatePostgres updates the status of a usersStr table entity using PostgreSQL syntax. All the fields of the
+// completeStr receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 completeStr) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (string, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("UPDATE usersStr SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(" WHERE id=$3 AND status=$4")
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

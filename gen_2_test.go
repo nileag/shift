@@ -13,10 +13,10 @@ import (
 	"github.com/nileag/shift"
 )
 
-// Insert inserts a new tests table entity. All the fields of the
+// InsertMySQL inserts a new tests table entity using MySQL syntax. All the fields of the
 // i receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 i) Insert(
+func (一 i) InsertMySQL(
 	ctx context.Context, tx *sql.Tx, st shift.Status,
 ) (int64, error) {
 	var (
@@ -49,10 +49,10 @@ func (一 i) Insert(
 	return id, nil
 }
 
-// Update updates the status of a tests table entity. All the fields of the
+// UpdateMySQL updates the status of a tests table entity using MySQL syntax. All the fields of the
 // u receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 u) Update(
+func (一 u) UpdateMySQL(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
 ) (int64, error) {
 	var (
@@ -79,6 +79,87 @@ func (一 u) Update(
 	args = append(args, 一.U5)
 
 	q.WriteString(" where `id`=? and `status`=?")
+	args = append(args, 一.ID, from.ShiftStatus())
+
+	res, err := tx.ExecContext(ctx, q.String(), args...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, errors.Wrap(shift.ErrRowCount, "u", j.KV("count", n))
+	}
+
+	return 一.ID, nil
+}
+
+// InsertPostgres inserts a new tests table entity using PostgreSQL syntax. All the fields of the
+// i receiver are set, as well as status, created_at and updated_at.
+// The newly created entity id is returned on success or an error.
+func (一 i) InsertPostgres(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("INSERT INTO tests (status, created_at, updated_at, i1, i2, i3) VALUES (")
+
+	q.WriteString("$1")
+	args = append(args, st.ShiftStatus())
+	q.WriteString(", $2")
+	args = append(args, time.Now())
+	q.WriteString(", $3")
+	args = append(args, time.Now())
+	q.WriteString(", $4")
+	args = append(args, 一.I1)
+	q.WriteString(", $5")
+	args = append(args, 一.I2)
+	q.WriteString(", $6")
+	args = append(args, 一.I3)
+
+	q.WriteString(")")
+
+	q.WriteString(" RETURNING id")
+
+	var id int64
+	err := tx.QueryRowContext(ctx, q.String(), args...).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// UpdatePostgres updates the status of a tests table entity using PostgreSQL syntax. All the fields of the
+// u receiver are updated, as well as status and updated_at.
+// The entity id is returned on success or an error.
+func (一 u) UpdatePostgres(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
+	var (
+		q    strings.Builder
+		args []interface{}
+	)
+
+	q.WriteString("UPDATE tests SET status=$1")
+	args = append(args, to.ShiftStatus())
+	q.WriteString(", updated_at=$2")
+	args = append(args, time.Now())
+	q.WriteString(", u1=$3")
+	args = append(args, 一.U1)
+	q.WriteString(", u2=$4")
+	args = append(args, 一.U2)
+	q.WriteString(", u3=$5")
+	args = append(args, 一.U3)
+	q.WriteString(", u4=$6")
+	args = append(args, 一.U4)
+	q.WriteString(", u5=$7")
+	args = append(args, 一.U5)
+	q.WriteString(" WHERE id=$8 AND status=$9")
 	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)

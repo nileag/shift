@@ -11,7 +11,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-        
+
     services:
       mysql:
         image: mysql:8
@@ -21,6 +21,14 @@ jobs:
         ports:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
 
@@ -38,5 +46,14 @@ jobs:
     - name: Vet
       run: go vet ./...
 
-    - name: Test
-      run: go test -db_test_base="root@tcp(localhost:${{ job.services.mysql.ports['3306'] }})/test?" ./...
+    - name: Test MySQL
+      env:
+        SHIFT_TEST_DIALECT: mysql
+        SHIFT_TEST_DB: "root@tcp(localhost:${{ job.services.mysql.ports['3306'] }})/test?"
+      run: go test ./...
+
+    - name: Test PostgreSQL
+      env:
+        SHIFT_TEST_DIALECT: postgres
+        SHIFT_TEST_DB: "postgres://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/test?sslmode=disable"
+      run: go test ./...
