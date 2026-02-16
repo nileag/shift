@@ -255,11 +255,11 @@ func TestWithTimestamps(t *testing.T) {
 
 	id, err := fsm.Insert(ctx, dbc, i_t{I3: time.Now(), UpdatedAt: t0})
 	require.Error(t, err, "created_at is required")
-	require.Zero(t, 0)
+	require.Zero(t, id)
 
 	id, err = fsm.Insert(ctx, dbc, i_t{I3: time.Now(), CreatedAt: t0})
 	require.Error(t, err, "updated_at is required")
-	require.Zero(t, 0)
+	require.Zero(t, id)
 
 	// First insert is ok
 	id, err = fsm.Insert(ctx, dbc, i_t{I3: time.Now(), CreatedAt: t0, UpdatedAt: t0})

@@ -1,8 +1,6 @@
 module github.com/nileag/shift
 
-go 1.24.3
-
-toolchain go1.25.4
+go 1.25
 
 require (
 	github.com/go-sql-driver/mysql v1.9.3

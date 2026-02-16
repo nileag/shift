@@ -24,11 +24,11 @@ func WithValidation() option {
 // NewFSM returns a new FSM initer that supports a user table with an int64
 // primary key.
 func NewFSM(events eventInserter[int64], opts ...option) initer[int64] {
-	return NewGenFSM[int64](events, opts...)
+	return NewGenFSM(events, opts...)
 }
 
 // NewGenFSM returns a new FSM initer. The type T should match the type of the
-// user table's primary key.
+// domain model's primary key.
 func NewGenFSM[T primary](events eventInserter[T], opts ...option) initer[T] {
 	fsm := GenFSM[T]{
 		states: make(map[int]status),
