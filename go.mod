@@ -1,10 +1,10 @@
 module github.com/nileag/shift
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/luno/jettison v0.0.0-20251004142841-a8f926feeafb
 	github.com/luno/reflex v0.0.0-20251024084856-57866fe6657d
 	github.com/sebdah/goldie/v2 v2.8.0
